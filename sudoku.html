@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sudoku Solver</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="title-box">
+      <h1>🔮 Sudoku Solver 🔮</h1>
+      <h2>Rellena la grilla con los números que compongan tu sudoku</h2>
+      <h2>Una vez listo, presiona el botón para resolver</h2>
+    </div>
+    <div class="sudoku-grid">
+      <script>
+        for (let i = 0; i < 81; i++) {
+          document.write('<input type="text" class="sudoku-cell" >');
+        }
+      </script>
+    </div>
+    <div class="resolve-button">
+      <button id="btn-resolver">Resolver</button>
+    </div>
+    <div class="clean-button">
+      <button id="btn-reset">Limpiar</button>
+    </div>
+    <script>
+      document
+        .getElementById("btn-resolver")
+        .addEventListener("click", function () {
+          const cells = document.querySelectorAll(".sudoku-cell");
+          const board = Array.from(cells).map((cell) => {
+            const value = cell.value;
+            return value === "" ? 0 : parseInt(value, 10);
+          });
+          console.log("Arreglo 1D del Sudoku:");
+          console.log(board);
+
+          cells.forEach((cell) => {
+            cell.readOnly = true;
+          });
+
+          this.disable = true;
+        });
+
+      document
+        .getElementById("btn-reset")
+        .addEventListener("click", function () {
+          const cells = document.querySelectorAll(".sudoku-cell");
+          const board = Array.from(cells).map((cell) => {
+            cell.value = "";
+          });
+        });
+    </script>
+  </body>
+</html>
