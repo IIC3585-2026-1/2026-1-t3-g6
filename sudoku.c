@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <emscripten.h>
 
 // N is the size of the 2D matrix N*N
 #define N 9
@@ -52,7 +52,6 @@ to assign values to all unassigned locations in
 such a way to meet the requirements for
 Sudoku solution (non-duplication across rows,
 columns, and boxes) */
-
 
 int solveSudoku(int grid[N][N], int row, int col)
 {
@@ -107,6 +106,12 @@ int solveSudoku(int grid[N][N], int row, int col)
         grid[row][col] = 0;
     }
     return 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int solveBoard(int* tablero_plano) {
+    int (*grid2D)[N] = (int (*)[N])tablero_plano;
+    return solveSudoku(grid2D, 0, 0);
 }
 
 int main()
