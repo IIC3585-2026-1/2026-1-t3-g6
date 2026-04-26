@@ -36,7 +36,7 @@ body {
   background-color: #f0f0f0;
   border: 1px solid #ccc;
   aspect-ratio: 1;
-  width: 100;
+  width: 100%;
   min-width: 0;
   box-sizing: border-box;
   text-align: center;
@@ -59,6 +59,36 @@ body {
   background-color: #fffeff;
 }
 
+.sudoku-cell.solved-cell {
+  background-color: #efe0ff;
+  color: #4f2670;
+  font-weight: 700;
+}
+
+.status-message {
+  min-height: 1.5rem;
+  margin: 1rem 0 0;
+  text-align: center;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1rem;
+}
+
+.status-ready {
+  color: #2f6b2f;
+}
+
+.status-loading {
+  color: #8b5a00;
+}
+
+.status-success {
+  color: #4f2670;
+}
+
+.status-error {
+  color: #9c1c1c;
+}
+
 .resolve-button {
   display: flex;
   flex-direction: column;
@@ -77,6 +107,12 @@ body {
   transition: ease-in 0.2s;
   font-size: 1rem;
   background-color: #ac4cb3;
+}
+
+.resolve-button button:disabled,
+.clean-button button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .resolve-button button:hover {

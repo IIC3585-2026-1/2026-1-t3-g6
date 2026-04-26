@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <title>Sudoku Solver</title>
     <link rel="stylesheet" href="style.css" />
+    <script>
+      var Module = {
+        onRuntimeInitialized: function () {
+          window.dispatchEvent(new Event("sudoku-wasm-ready"));
+        },
+      };
+    </script>
+    <script src="sudoku.js"></script>
   </head>
   <body>
     <div class="title-box">
@@ -14,43 +22,160 @@
     <div class="sudoku-grid">
       <script>
         for (let i = 0; i < 81; i++) {
-          document.write('<input type="text" class="sudoku-cell" >');
+          document.write(
+            '<input type="text" class="sudoku-cell" inputmode="numeric" maxlength="1" aria-label="Celda de sudoku">'
+          );
         }
       </script>
     </div>
+    <p id="status-message" class="status-message">Cargando solver Wasm...</p>
     <div class="resolve-button">
-      <button id="btn-resolver">Resolver</button>
+      <button id="btn-resolver" disabled>Resolver</button>
     </div>
     <div class="clean-button">
       <button id="btn-reset">Limpiar</button>
     </div>
     <script>
-      document
-        .getElementById("btn-resolver")
-        .addEventListener("click", function () {
-          const cells = document.querySelectorAll(".sudoku-cell");
-          const board = Array.from(cells).map((cell) => {
-            const value = cell.value;
-            return value === "" ? 0 : parseInt(value, 10);
-          });
-          console.log("Arreglo 1D del Sudoku:");
-          console.log(board);
+      const SAMPLE_BOARD = [
+        5, 3, 0, 0, 7, 0, 0, 0, 0,
+        6, 0, 0, 1, 9, 5, 0, 0, 0,
+        0, 9, 8, 0, 0, 0, 0, 6, 0,
+        8, 0, 0, 0, 6, 0, 0, 0, 3,
+        4, 0, 0, 8, 0, 3, 0, 0, 1,
+        7, 0, 0, 0, 2, 0, 0, 0, 6,
+        0, 6, 0, 0, 0, 0, 2, 8, 0,
+        0, 0, 0, 4, 1, 9, 0, 0, 5,
+        0, 0, 0, 0, 8, 0, 0, 7, 9,
+      ];
 
-          cells.forEach((cell) => {
-            cell.readOnly = true;
-          });
+      const cells = Array.from(document.querySelectorAll(".sudoku-cell"));
+      const resolveButton = document.getElementById("btn-resolver");
+      const resetButton = document.getElementById("btn-reset");
+      const statusMessage = document.getElementById("status-message");
+      let solveBoard = null;
+      let wasmReady = false;
 
-          this.disable = true;
+      function setStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = "status-message";
+
+        if (type) {
+          statusMessage.classList.add(`status-${type}`);
+        }
+      }
+
+      function sanitizeCellValue(cell) {
+        const sanitizedValue = cell.value.replace(/[^1-9]/g, "").slice(0, 1);
+        cell.value = sanitizedValue;
+      }
+
+      function clearSolvedMarks() {
+        cells.forEach((cell) => {
+          cell.classList.remove("solved-cell");
+        });
+      }
+
+      function loadBoard(board) {
+        cells.forEach((cell, index) => {
+          cell.value = board[index] === 0 ? "" : String(board[index]);
+          cell.readOnly = false;
         });
 
-      document
-        .getElementById("btn-reset")
-        .addEventListener("click", function () {
-          const cells = document.querySelectorAll(".sudoku-cell");
-          const board = Array.from(cells).map((cell) => {
-            cell.value = "";
-          });
+        clearSolvedMarks();
+      }
+
+      function readBoard() {
+        return Int32Array.from(
+          cells.map((cell) => (cell.value.trim() === "" ? 0 : parseInt(cell.value, 10)))
+        );
+      }
+
+
+      function showSolvedBoard(solvedBoard, originalBoard) {
+        cells.forEach((cell, index) => {
+          cell.value = String(solvedBoard[index]);
+          cell.readOnly = true;
+          cell.classList.toggle("solved-cell", originalBoard[index] === 0);
         });
+      }
+
+      function resolveSudoku() {
+        if (!wasmReady) {
+          setStatus("El solver Wasm todavia no termina de cargar.", "error");
+          return;
+        }
+
+        const originalBoard = readBoard();
+        
+
+        if (typeof HEAP32 === "undefined") {
+          setStatus("No se pudo acceder al heap de Wasm.", "error");
+          return;
+        }
+
+        const bytesPerCell = Int32Array.BYTES_PER_ELEMENT;
+        const pointer = Module._malloc(originalBoard.length * bytesPerCell);
+
+        if (!pointer) {
+          setStatus("No se pudo reservar memoria en Wasm.", "error");
+          return;
+        }
+
+        resolveButton.disabled = true;
+        resetButton.disabled = true;
+        setStatus("Resolviendo...", "loading");
+
+        try {
+          HEAP32.set(originalBoard, pointer / bytesPerCell);
+
+          if (!solveBoard(pointer)) {
+            setStatus("Este sudoku no tiene solucion.", "error");
+            return;
+          }
+
+          const solvedBoard = HEAP32.slice(
+            pointer / bytesPerCell,
+            pointer / bytesPerCell + originalBoard.length
+          );
+
+          showSolvedBoard(solvedBoard, originalBoard);
+          setStatus("Sudoku resuelto.", "success");
+        } catch (error) {
+          setStatus("Ocurrio un error al resolver el tablero.", "error");
+          console.error(error);
+        } finally {
+          Module._free(pointer);
+          resolveButton.disabled = false;
+          resetButton.disabled = false;
+        }
+      }
+
+      cells.forEach((cell) => {
+        cell.addEventListener("input", function () {
+          sanitizeCellValue(this);
+          this.classList.remove("solved-cell");
+        });
+      });
+
+      window.addEventListener("sudoku-wasm-ready", function () {
+        solveBoard = Module.cwrap("solveBoard", "number", ["number"]);
+        wasmReady = true;
+        resolveButton.disabled = false;
+        setStatus("Solver Wasm listo. Tablero de ejemplo cargado.", "ready");
+      });
+
+      resolveButton.addEventListener("click", resolveSudoku);
+
+      resetButton.addEventListener("click", function () {
+        loadBoard(SAMPLE_BOARD);
+        resolveButton.disabled = !wasmReady;
+        setStatus(
+          wasmReady ? "Tablero de ejemplo restaurado." : "Cargando solver Wasm...",
+          wasmReady ? "ready" : null
+        );
+      });
+
+      loadBoard(SAMPLE_BOARD);
     </script>
   </body>
 </html>
