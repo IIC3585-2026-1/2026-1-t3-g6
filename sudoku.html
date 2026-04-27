@@ -48,6 +48,18 @@
         0, 0, 0, 0, 8, 0, 0, 7, 9,
       ];
 
+      const EMPTY_BOARD = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+      ];
+
       const cells = Array.from(document.querySelectorAll(".sudoku-cell"));
       const resolveButton = document.getElementById("btn-resolver");
       const resetButton = document.getElementById("btn-reset");
@@ -129,7 +141,7 @@
           HEAP32.set(originalBoard, pointer / bytesPerCell);
 
           if (!solveBoard(pointer)) {
-            setStatus("Este sudoku no tiene solucion.", "error");
+            setStatus("Este sudoku no tiene solución.", "error");
             return;
           }
 
@@ -167,7 +179,7 @@
       resolveButton.addEventListener("click", resolveSudoku);
 
       resetButton.addEventListener("click", function () {
-        loadBoard(SAMPLE_BOARD);
+        loadBoard(EMPTY_BOARD);
         resolveButton.disabled = !wasmReady;
         setStatus(
           wasmReady ? "Tablero de ejemplo restaurado." : "Cargando solver Wasm...",
